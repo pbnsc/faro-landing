@@ -24,8 +24,8 @@
 
   nav{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;height:74px}
   .brand{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;letter-spacing:-0.02em}
-  .nav-cta{font-size:13px;font-weight:500;color:var(--ink-2);border:1px solid var(--hair2);
-    padding:8px 15px;border-radius:20px;transition:.25s;cursor:pointer}
+  .nav-cta{font:inherit;font-size:13px;font-weight:500;color:var(--ink-2);background:none;
+    border:1px solid var(--hair2);padding:8px 15px;border-radius:20px;transition:.25s;cursor:pointer}
   .nav-cta:hover{color:var(--ink);border-color:var(--ink-3)}
 
   .hero{position:relative;z-index:1;min-height:calc(100dvh - 74px);display:flex;flex-direction:column;
@@ -61,25 +61,25 @@
 <body>
 <div class="wrap">
   <nav>
-    <div class="brand"><canvas class="orb" width="60" height="60" style="width:20px;height:20px"></canvas>Faro</div>
-    <a class="nav-cta" onclick="document.querySelector('#f1 input').focus()">Join the waitlist</a>
+    <div class="brand"><canvas class="orb" width="60" height="60" style="width:20px;height:20px" aria-hidden="true"></canvas>Faro</div>
+    <button type="button" class="nav-cta" onclick="joinFocus()">Join the waitlist</button>
   </nav>
 
   <section class="hero">
-    <div class="orb-hero"><div class="orb-glow"></div><canvas id="orbHero" width="460" height="460" style="width:230px;height:230px"></canvas></div>
+    <div class="orb-hero"><div class="orb-glow"></div><canvas id="orbHero" width="460" height="460" style="width:230px;height:230px" aria-hidden="true"></canvas></div>
     <h1>Money, finally clear.</h1>
     <p class="sub">Faro brings all your accounts into one calm, clear picture you can talk to.</p>
     <form id="f1" novalidate>
       <input type="email" placeholder="you@email.com" aria-label="Email" required autocomplete="email" />
       <button type="submit">Join the waitlist</button>
     </form>
-    <div class="done" id="done">You are on the list. We will be in touch soon.</div>
-    <div class="err" id="err">Something went wrong. Please try again.</div>
+    <div class="done" id="done" role="status" aria-live="polite">You are on the list. We will be in touch soon.</div>
+    <div class="err" id="err" role="status" aria-live="polite">Something went wrong. Please try again.</div>
     <div class="micro">Private by design. Your data stays yours.</div>
   </section>
 
   <footer>
-    <div class="brand" style="font-size:13px"><canvas class="orb" width="48" height="48" style="width:16px;height:16px"></canvas>Faro</div>
+    <div class="brand" style="font-size:13px"><canvas class="orb" width="48" height="48" style="width:16px;height:16px" aria-hidden="true"></canvas>Faro</div>
     <div class="euf">Built in Europe <span id="eu"></span></div>
   </footer>
 </div>
@@ -149,11 +149,21 @@
 
   // waitlist submit -> Supabase (insert-only)
   var f=document.getElementById("f1"), done=document.getElementById("done"), err=document.getElementById("err");
+  function showErr(msg){ err.textContent=msg; err.classList.add("show"); }
+  function joinFocus(){
+    if(f.style.display==="none"){ done.scrollIntoView({behavior:"smooth",block:"center"}); }
+    else { f.querySelector("input").focus(); }
+  }
+  window.joinFocus=joinFocus;
+
   f.addEventListener("submit", async function(e){
     e.preventDefault();
-    var input=f.querySelector("input"), v=input.value.trim();
-    if(!v || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){input.focus();return;}
-    var btn=f.querySelector("button"); btn.disabled=true; btn.textContent="Joining…"; err.classList.remove("show");
+    var input=f.querySelector("input"), v=input.value.trim().toLowerCase();
+    if(!v || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){
+      showErr("Please enter a valid email address."); input.focus(); return;
+    }
+    err.classList.remove("show");
+    var btn=f.querySelector("button"); btn.disabled=true; btn.textContent="Joining…";
     try{
       var r=await fetch(SUPABASE_URL+"/rest/v1/waitlist",{
         method:"POST",
@@ -165,7 +175,8 @@
         f.style.display="none"; done.classList.add("show");
       } else { throw new Error("status "+r.status); }
     }catch(_){
-      btn.disabled=false; btn.textContent="Join the waitlist"; err.classList.add("show");
+      btn.disabled=false; btn.textContent="Join the waitlist";
+      showErr("Something went wrong. Please try again.");
     }
   });
 </script>
